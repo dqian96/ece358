@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include <cstdlib>
+#include <memory>
 #include <vector>
 
 double genExpRand(double lambda);
