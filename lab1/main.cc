@@ -76,12 +76,14 @@ void testMM1KQueueUtilization(double alpha, double T) {
         auto metricsK5 = simulateMM1KQueue(alpha, L, lambda, C, T, 5);
         auto metricsK10 = simulateMM1KQueue(alpha, L, lambda, C, T, 10);
         auto metricsK40 = simulateMM1KQueue(alpha, L, lambda, C, T, 40);
+        auto metricsKInf = simulateMM1KQueue(alpha, L, lambda, C, T, -1);
 
         mm1KAvgQueueSizeData
             << utilization
             << ", " << metricsK5.averageQSize
             << ", " << metricsK10.averageQSize
             << ", " << metricsK40.averageQSize
+            << ", " << metricsKInf.averageQSize
             << endl;
     }
 
