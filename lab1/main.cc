@@ -70,8 +70,7 @@ void testMM1KQueueUtilization(double alpha, double T) {
     ofstream mm1KAvgQueueSizeData("mm1KAvgQueueSize.csv");
     ofstream mm1KPLossData("mm1KPLoss.csv");
 
-
-    for (double utilization = 0.26; utilization < 0.95; utilization += 0.1) {
+    for (double utilization = 0.6; utilization < 1.5; utilization += 0.1) {
         double lambda = (utilization * C) / L;
 
         auto metricsK5 = simulateMM1KQueue(alpha, L, lambda, C, T, 5);
@@ -84,6 +83,15 @@ void testMM1KQueueUtilization(double alpha, double T) {
             << ", " << metricsK10.averageQSize
             << ", " << metricsK40.averageQSize
             << endl;
+    }
+
+    double utilization = 0.5;
+    while (utilization < 10) {
+        double lambda = (utilization * C) / L;
+
+        auto metricsK5 = simulateMM1KQueue(alpha, L, lambda, C, T, 5);
+        auto metricsK10 = simulateMM1KQueue(alpha, L, lambda, C, T, 10);
+        auto metricsK40 = simulateMM1KQueue(alpha, L, lambda, C, T, 40);
 
         mm1KPLossData
             << utilization
@@ -91,6 +99,14 @@ void testMM1KQueueUtilization(double alpha, double T) {
             << ", " << metricsK10.pLoss
             << ", " << metricsK40.pLoss
             << endl;
+
+        if (utilization <= 2) {
+            utilization += 0.1;
+        } else if (utilization <= 5) {
+            utilization += 0.2;
+        } else {
+            utilization += 0.4;
+        }
     }
 
     mm1KAvgQueueSizeData.close();
