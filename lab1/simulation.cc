@@ -68,13 +68,13 @@ PerformanceMetrics simulateMM1Queue(double alpha, double L, double lambda,
     double averageNumberOfPackets = 1.0 * q._sumSampledQueueSize / q._numObservations;
     double proportionIdle = 1.0 * q._numIdle / q._numObservations;
 
-    cout << "Num Arrivals: " << q._numArrivals << endl;
-    cout << "Num Departures: " << q._numDepartures << endl;
-    cout << "Num Observations: " << q._numObservations << endl;
+    /* cout << "Num Arrivals: " << q._numArrivals << endl; */
+    /* cout << "Num Departures: " << q._numDepartures << endl; */
+    /* cout << "Num Observations: " << q._numObservations << endl; */
 
 
-    cout << "Average Number of Packets: " << averageNumberOfPackets << endl;
-    cout << "Proprtion Idle: " << proportionIdle << endl << endl;
+    /* cout << "Average Number of Packets: " << averageNumberOfPackets << endl; */
+    /* cout << "Proprtion Idle: " << proportionIdle << endl << endl; */
 
     PerformanceMetrics metrics;
 
@@ -151,16 +151,16 @@ PerformanceMetrics simulateMM1KQueue(double alpha, double L, double lambda,
     double proportionIdle = 1.0 * q._numIdle / q._numObservations;
     double proportionLost = 1.0 * q._numDropped / q._numPacketsGenerated;
 
-    cout << "Num Arrivals: " << q._numArrivals << endl;
-    cout << "Num Departures: " << q._numDepartures << endl;
-    cout << "Num Observations: " << q._numObservations << endl;
-    cout << "Num Dropped: " << q._numDropped << endl;
-    cout << "Num Generated: " << q._numPacketsGenerated << endl;
+    /* cout << "Num Arrivals: " << q._numArrivals << endl; */
+    /* cout << "Num Departures: " << q._numDepartures << endl; */
+    /* cout << "Num Observations: " << q._numObservations << endl; */
+    /* cout << "Num Dropped: " << q._numDropped << endl; */
+    /* cout << "Num Generated: " << q._numPacketsGenerated << endl; */
 
 
-    cout << "Average Number of Packets: " << averageNumberOfPackets << endl;
-    cout << "Proprtion Idle: " << proportionIdle << endl;
-    cout << "Proprtion Lost: " << proportionLost << endl << endl;
+    /* cout << "Average Number of Packets: " << averageNumberOfPackets << endl; */
+    /* cout << "Proprtion Idle: " << proportionIdle << endl; */
+    /* cout << "Proprtion Lost: " << proportionLost << endl << endl; */
 
     PerformanceMetrics metrics;
 

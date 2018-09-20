@@ -53,15 +53,15 @@ To generate an exponential random variable from the uniform distribution, all we
             &F^{-1} = -\dfrac{\ln (1 - x)}{\lambda} \\
         \end{align*}
 
-        The implementation for the method that generates exponentially distributed random numbers \texttt{expDistr} can be found in \texttt{utils.cc}.
+        The implementation for the method that generates exponentially distributed random numbers
+        \texttt{genExpRand(double lambda)} can be found in \texttt{utils.cc}.
         \newline \newline
-        The implementation for the C++ code generates 1000 exponential random variables with $\lambda = 75$ is in \texttt{main.cc} and is named
-        \texttt{validExpDistr} and is run as a sanity check before the simulation. From our experiment, the mean is 0.0129 and variance is 0.000166.
+        The implementation for the C++ code that generates 1000 numbers from an exponential distribution
+        with $\lambda = 75$ is in \texttt{main.cc} and is named \texttt{validExpGen()} and is run as a sanity check
+        before the simulation. From our experiment, the mean is 0.0129 and variance is 0.000166.
         The theoretical values for the mean and variance are $\mu = \dfrac{1}{\lambda} = \dfrac{1}{75} \approx 0.013$ and
         $\sigma = \dfrac{1}{\lambda^2} = \dfrac{1}{5625} \approx 0.00017$.
-        Our experimental values are within 1\% of the expected values. Thus, we verify our generator is valid.
-
-SHOW CODE?
+        Our experimental values are within 1\% of the expected values. Thus, we verify that our generator is valid.
 \end{enumerate}
 
 
@@ -69,31 +69,34 @@ SHOW CODE?
 \section{Question 2}
 
 I decided to build the M/M/1/K queue first and let the M/M/1 queue be a special case of it where K = $\infty$.
-In my implementation, I decoupled the \textit{simulation} from the \textit{queue} itself.
+In my implementation, I decoupled the \textit{simulation} from the \textit{queue} itself. \newline
 
 
 In \texttt{simulation.cc}, I wrote a method \texttt{simulateMM1Queue(double alpha, doubled L, double lambda, double C, double T)},
 where these variables follow the definition stated in the lab outline. This method generates the observer event times and packet arrival
-times via a Poission distribution method \texttt{genPoissionDistr} (which repeatedly calls our exponential random number generator for intervals
-between events). The packet sizes were generated using the exponential random number generator. To get the packet departure time for packet $p$, simply calculate
+times via the Poission distribution method \texttt{genPoissionDistr(double lambda, double T)}, which can be found in
+\texttt{utils.cc}. This method repeatedly calls our exponential random number generator to generate
+intervals between events. \newline
+
+The packet sizes were generated using the exponential random number generator. To get the packet departure time for packet $p$, simply calculate
 $\dfrac{L_p}{C} + \texttt{max}(lastPacketDepartureTime, packetArrivalTime)$. We combine these events into a vector of \texttt{Events} and then sort
-time by their event time. We then iterate through the events and feed them to the queue. At the end, we inspect the counters for the queue and calculate our
-performance metrics. \newline
+them by their event time. We then iterate through the events and feed them to the Network queue.
+At the end, we inspect the counters for the network queue and calculate our performance metrics. \newline
 
 In \texttt{queue.cc}, we initialize our counters and expose a method \texttt{handle(Event e)} which consumes an event and adjusts the state of counters
 to reflect the event. Specifically, we have counters for \texttt{numIdle} to reflect the number of observations in which the queue was idle,
 \texttt{numObservations} for the total number of observations, \texttt{numArrival} to count the number of packets that arrived at the queue,
 \texttt{numDepartures} for the number of packets that departed the queue (sent off by the server), and an accumulator \texttt{sumSampledQueueSize} which
-accumulates the size of the queue every time we observer it. Depending on the type of the event (specified by an enum), we do several different things:
+accumulates the size of the queue every time we observe it. Depending on the type of the event (specified by an enum), we do several different things:
 
 \begin{itemize}
     \item OBSERVER: increment \texttt{numObservations}, increment \texttt{numIdle} if the queue is idle (\texttt{currentSize = numArrivals - numDepartures}), and add
-    the current size of the queue to a sum to calculate the average size later on.
+        the current size of the queue to a sum (\texttt{sumSampledQueueSize}) to calculate the average size later on.
     \item ARRIVAL: increment \texttt{numArrivals}.
     \item DEPARTURE: increment \texttt{numDepartures}.
 \end{itemize}
 
-You may have noticed that this method also generates an event. This is for the M/M/1/K queue case, where dynamic events are generated on the fly. In particular,
+You may have noticed that the \texttt{handle} method also generates an event. This is for the M/M/1/K queue case, where dynamic events are generated on the fly. In particular,
 departure events may be generated on packet arrival. We will discuss this later on. \newline
 
 The core of the implementation is made available in the Appendix. For implementation of lower level functions, such as the random number generator, please refer
@@ -102,7 +105,7 @@ to the source code submitted with the lab.
 \section{Question 3}
 
 Setting $L=12000$, $C=10^6$, $T = 10$, $\alpha = 100$, we must determine $\lambda$ as a function of $\rho$, where $0.25 < \rho < 0.95$.
-This is an easy arrangement $\lambda = \dfrac{\rho C}{L}$. We then create a for loop from the lower and upper bounds of $\rho$ and determine
+This is an easy re-arrangement of $\lambda = \dfrac{\rho C}{L}$. We then create a for loop from the lower and upper bounds of $\rho$ and determine
 the necessary parameters for the simulation. We record the results below.
 
 \begin{center}
@@ -128,8 +131,10 @@ the necessary parameters for the simulation. We record the results below.
 \end{center}
 
 \begin{enumerate}
-    \item E[N]: To calculate this value, every time the queue processes an \texttt{OBSERVER} event, we add the $currentSize = numArrivals - numDepartures$
-    to an accumulator. At the end of the simulation, we find that $E[N] = \dfrac{accumulator}{numObservations}$. The results are given below. \newline
+    \item E[N]: To calculate this value, every time the queue processes an \texttt{OBSERVER} event, we add the
+        $\texttt{currentSize} = \texttt{numArrivals} - \texttt{numDepartures}$
+        to an accumulator \texttt{sumSampledQueueSize}. At the end of the simulation, we find that $E[N] =
+        \dfrac{\texttt{sumSampledQueueSize}}{\texttt{numObservations}}$. The results are given below. \newline
     \includegraphics[width=\textwidth]{mm1AvgQueueSize.jpeg}
 
     \item $P_{IDLE}$: To calculate this value, every time the queue processes an \texttt{OBSERVER} event, we increment our idle counter like so
@@ -138,8 +143,11 @@ the necessary parameters for the simulation. We record the results below.
 \end{enumerate}
 
 \section{Question 4}
-For $\rho = 1.2$, we observe that $E[n] \approx 55$, which is a sharp increase from the values above. At the same time, $P_{IDLE} \approx 0$, which is close to the
-previous values. The reason for this change is because of the increase in average \textit{queuing delay}. As (average) queue utilization increases past 1, we see
+For $\rho = 1.2$, we observe that $E[n] \approx 92$, which is a sharp increase from the values above. At the same
+time, $P_{IDLE} \approx 0.004$, which is close to the previous values. \newline
+
+The reason for this change is because the network queue is receiving data at a higher rate than it can output data
+(throughput). This leads to an increase in average \textit{queuing delay}. As (average) queue utilization increases past 1, we see
 that more data arrives ($L\lambda$) then the server can output ($C$), on average. This means that there is an increased likelihood that an incoming packet will be
 waiting in the queue. This increase in average queuing delay is reflected in the fact that the average queue size is now sharply greater than before. Note that the proportion
 idle of the queue did not change significantly as for $\rho \approx 1$, the queue is already being heavily utilized and so the proportion of time it is idle is already
@@ -151,11 +159,13 @@ we execute a different portion of the queue code. \newline
 
 In \texttt{simulation.cc} we implement the method \texttt{simulateMM1KQueue(double alpha, double L, double lambda, double C, double T, int K)}. These parameter are
 synonymous in meaning to those defined in the lab outline. Note that we define a new parameter K, which now indicates the max size of the queue. Like previously, we
-use \texttt{genPoissionDistr} to generate the observer event times and packet arrival times, however the difference this time is that we no longer geneerate the departure
-times and packet sizes. We fuse those two events into a single event queue using a 2 pointer approach. Then, we create a new queue called \texttt{dynamicEvents} which is
+use \texttt{genPoissionDistr(double lambda, int T)} to generate the observer event times and packet arrival times, however the difference this time is that we no longer geneerate the departure
+times and packet sizes. \newline
+
+We fuse observer and arrival events into a single event queue using a 2 pointer approach. Then, we create a new queue called \texttt{dynamicEvents} which is
 responsible for storing events generated on the fly (i.e. departure events). We use another queue for departure events instead of inserting into one event queue because
-we would have to binary search for proper index, which is computationally more expensive than having two queues. Every time we consume an event, all we have to do is compare
-the front of the two queues \texttt{events} and \texttt{dyanmicEvents} to choose the earliest one, and wll we have to do to insert a new event is to push it back to the
+we would have to binary search for the proper index, which is computationally more expensive than having two queues. Every time we consume an event, all we have to do is compare
+the front of the two queues \texttt{events} and \texttt{dyanmicEvents} to choose the earliest one, and all we have to do to insert a new event is to push it back to the
 end of the \texttt{dynamicEvents} queue because packets arriving later will depart later due to the FIFO property. We then feed events from these two queues into the network
 queue and computer our performance metrics at the end. \newline
 
@@ -171,8 +181,10 @@ and automatically consumed by the network queue later on.
 Setting $L=12000$, $C=10^6$, $T = 10$, $\alpha = 100$, we must determine $\lambda$ as a function of $\rho$ using the same method previously.
 
 \begin{enumerate}
-    \item E[N]: To calculate this value, every time the queue processes an \texttt{OBSERVER} event, we add the $currentSize = numArrivals - numDepartures$
-    to an accumulator. At the end of the simulation, we find that $E[N] = \dfrac{accumulator}{numObservations}$. The results are given below. \newline
+    \item E[N]: To calculate this value, every time the queue processes an \texttt{OBSERVER} event,
+        we add the $\texttt{currentSize} = \texttt{numArrivals} - \texttt{numDepartures}$
+        to an accumulator. At the end of the simulation, we find that $E[N] =
+        \dfrac{\texttt{sumSampledQueueSize}}{\texttt{numObservations}}$. The results are given below. \newline
     \begin{center}
         \begin{tabular}{||c c c c c||}
         \hline
@@ -202,13 +214,19 @@ Setting $L=12000$, $C=10^6$, $T = 10$, $\alpha = 100$, we must determine $\lambd
 
     For the cases where K is bounded, we see that as queue utilization surpasses 1.0, the average queue size approaches K, that is the maximum queue size.
     This makes sense, since for utilization greater than 1, we see that on average, the queue receives more data it can handle and the average queue size increases
-    to match, until it is capped at its maximum K. However, for $K=\infty$, we can we see that the average queue size continue to grow and does not converge to a
+    to match, until it is capped at its maximum K.
+    Newly arriving packets are dropped/lost when the queue is at its maximum size.
+    However, for $K=\infty$, we can we see that the average queue size continue to grow and does not converge to a
     maximum. For the infinite case, the queuing delay still increases as its throughput is the same as the other cases - however, no packets are dropped and so the queue
     continues to grow longer as it's size is not bounded. Comparing it with the other cases, we can roughly see the proportion of dropped packets by seeing how much
     larger the average queue size of the infinite case is.
 
-    \item $P_{LOSS}$: To calculate this value, we simply look at $P_{LOSS} = \dfrac{numDropped}{numGenerated}$. This is proportion of the packets
-    that were dropped (i.e. lost) out of all the packets that were generated. \newline
+\item $P_{LOSS}$: To calculate this value, we simply look at $P_{LOSS} =
+    \dfrac{\texttt{numDropped}}{\texttt{numGenerate}}$. This is proportion of the packets
+    that were dropped (i.e.lost) out of all the packets that were generated. We see that as utilization
+    surpasses 1.0 for all the queues, the proportion lost starts to increase pretty fast. For small queue sizes,
+    the proportion loss grows slightly slower than the larger queue sizes but not by much likely because the maximum
+    queue sizes aren't too different. \newline
     \begin{center}
         \begin{tabular}{||c c c c||}
         \hline
@@ -381,13 +399,13 @@ PerformanceMetrics simulateMM1Queue(double alpha, double L, double lambda,
     double averageNumberOfPackets = 1.0 * q._sumSampledQueueSize / q._numObservations;
     double proportionIdle = 1.0 * q._numIdle / q._numObservations;
 
-    cout << "Num Arrivals: " << q._numArrivals << endl;
-    cout << "Num Departures: " << q._numDepartures << endl;
-    cout << "Num Observations: " << q._numObservations << endl;
+    /* cout << "Num Arrivals: " << q._numArrivals << endl; */
+    /* cout << "Num Departures: " << q._numDepartures << endl; */
+    /* cout << "Num Observations: " << q._numObservations << endl; */
 
 
-    cout << "Average Number of Packets: " << averageNumberOfPackets << endl;
-    cout << "Proprtion Idle: " << proportionIdle << endl << endl;
+    /* cout << "Average Number of Packets: " << averageNumberOfPackets << endl; */
+    /* cout << "Proprtion Idle: " << proportionIdle << endl << endl; */
 
     PerformanceMetrics metrics;
 
@@ -464,16 +482,16 @@ PerformanceMetrics simulateMM1KQueue(double alpha, double L, double lambda,
     double proportionIdle = 1.0 * q._numIdle / q._numObservations;
     double proportionLost = 1.0 * q._numDropped / q._numPacketsGenerated;
 
-    cout << "Num Arrivals: " << q._numArrivals << endl;
-    cout << "Num Departures: " << q._numDepartures << endl;
-    cout << "Num Observations: " << q._numObservations << endl;
-    cout << "Num Dropped: " << q._numDropped << endl;
-    cout << "Num Generated: " << q._numPacketsGenerated << endl;
+    /* cout << "Num Arrivals: " << q._numArrivals << endl; */
+    /* cout << "Num Departures: " << q._numDepartures << endl; */
+    /* cout << "Num Observations: " << q._numObservations << endl; */
+    /* cout << "Num Dropped: " << q._numDropped << endl; */
+    /* cout << "Num Generated: " << q._numPacketsGenerated << endl; */
 
 
-    cout << "Average Number of Packets: " << averageNumberOfPackets << endl;
-    cout << "Proprtion Idle: " << proportionIdle << endl;
-    cout << "Proprtion Lost: " << proportionLost << endl << endl;
+    /* cout << "Average Number of Packets: " << averageNumberOfPackets << endl; */
+    /* cout << "Proprtion Idle: " << proportionIdle << endl; */
+    /* cout << "Proprtion Lost: " << proportionLost << endl << endl; */
 
     PerformanceMetrics metrics;
 
