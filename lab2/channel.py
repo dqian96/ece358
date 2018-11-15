@@ -7,44 +7,44 @@ class Channel(object):
     # constants
     BIT_ERROR_TOLERANCE = 4
 
-    def __init__(self, capacity, propagation_delay, bit_error_rate, receiver):
+    def __init__(self, capacity, propagation_delay, bit_error_rate):
         """Creates the Channel object
 
         :capacity: capacity of the channel in (bytes/s)
         :propagation_delay: propagation delay of sending a packet through the channel
         :bit_error_rate: the probability of each bit having an error during transmission
-        :receiver: the receiver object that the data is sent to
 
         """
         self._capacity = capacity
         self._propagation_delay = propagation_delay
         self._bit_error_rate = bit_error_rate
-        self._receiver = receiver
 
     def transmit(self, time, frame):
         """Transmit
 
-        :time: the int time that the frame was sent
+        :time: the int time that the frame was sent to the channel
         :frame: the frame object to be sent through the channel
-        :returns: TODO
+        :returns: a tuple (delivered_time: int, frame: Frame)
 
         """
         frame = Channel._undergo_interference(frame, self._bit_error_rate)
 
         if frame is not None:
             # frame not lost
-            received_time = time + self._propagation_delay
-            self._receiver.receive(received_time, frame)
+            delivered_time = time + self._propagation_delay
+            return delivered_time, frame
 
-    def get_transmission_delay(self, packet_length):
+        return None, None  # lost frame
+
+    def get_transmission_delay(self, frame_length):
         """Calculate the tranmission delay to send a packet of given length
 
-        :packet_length: int size of the packet in bytes
+        :frame_length: int size of the packet in bytes
         :returns: the time in seconds for the packet to be put on the link
 
         """
-        assert packet_length != 0
-        return packet_length/self._capacity
+        assert frame_length != 0
+        return frame_length/self._capacity
 
     @staticmethod
     def _undergo_interference(frame, bit_error_rate):
@@ -55,10 +55,10 @@ class Channel(object):
         :returns: the affected frame
 
         """
-        packet_length = frame.length
+        frame_length = frame.length
 
         num_bit_errors = 0
-        for bit in range(packet_length):
+        for bit in range(frame_length):
             is_bit_safe = 0 if random() <= bit_error_rate else 1
             num_bit_errors += not is_bit_safe
 

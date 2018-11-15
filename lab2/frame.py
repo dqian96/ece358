@@ -28,7 +28,7 @@ class Frame(object):
         self._is_error = val
 
     @property
-    def packet_length(self):
+    def frame_length(self):
         """Returns the total size of the Frame in bytes."""
         return Frame.HEADER_LENGTH + self._datagram_length
 

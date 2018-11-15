@@ -34,15 +34,17 @@ class GBNReceiver(object):
 
     """GBN Receiver class."""
 
-    def __init__(self, reverse_channel, num_seq_nos):
-        """TODO: to be defined1.
+    def __init__(self, num_seq_nos, reverse_capacity):
+        """Create the GBNReceiver object
 
-        :reverse_channel: the Channel to send ACKs to the sender
         :num_seq_nos: the number of distinct sequence numbers of Frames
+        :reverse_capacity: the int capacity of the reverse link in bytes
 
         """
-        self._reverse_channel = reverse_channel
+        assert num_seq_nos > 0 and reverse_capacity > 0
+
         self._num_seq_nos = num_seq_nos
+        self._reverse_capacity = reverse_capacity
 
         self._next_expected_frame = 0
         self._current_time = 0
@@ -57,9 +59,11 @@ class GBNReceiver(object):
 
         :time: the time that the Frame was received
         :frame: the frame received
-        :returns: TODO
+        :returns: a tuple (time_replied: int, ack: Frame) to acknowledge a received packet
 
         """
+        assert frame is not None  # lost frames should be not be given to this method
+
         self._current_time = time
 
         if not frame.is_error:
@@ -70,11 +74,10 @@ class GBNReceiver(object):
 
         ack = Frame(self._next_expected_frame, None, 0)
 
-        transmission_delay = self._reverse_channel.get_transmission_delay(ack.packet_length)
-        time_sent = self._current_time + transmission_delay
-        self._reverse_channel.transmit(time_sent, ack)
+        transmission_delay = ack.frame_length/self._reverse_capacity
+        time_replied = self._current_time + transmission_delay
 
-
+        return time_replied, ack
 
     def _deliver(self, datagram):
         """Deliver a datagram to layer 3
