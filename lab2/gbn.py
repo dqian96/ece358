@@ -9,13 +9,16 @@ class GBNSender(object):
     """GBN Sender. Sends messages based on go-back-n."""
 
     WaitingPacket = namedtuple('WaitingPacket', 'time_sent frame')
-    MAX_SEND = 10000
+    MAX_SEND = 15000  # total number of packets to send before stopping
 
     def __init__(self, es, udt_send_fn, get_packet_fn, channel, receiver, timeout_duration, window_size=1):
         """Creates the GBN sender.
 
         :es: an event scheduler object to push/pop events from
+        :udt_send_fn: send the data through an unreliable channel to generate an event (this is the SEND() fn)
         :get_packet_fn: function() -> (packet: Packet, length: int) that returns a packet from the above layer
+        :channel: the channel to send the data through
+        :receiver: the receiver of the data
         :timeout_duration: seconds until the sender times out
         :window_size: an integer buffer size
 
@@ -46,6 +49,12 @@ class GBNSender(object):
 
     @property
     def throughput(self):
+        """Return the so-far throughput of the sender by looking at the current time.
+
+        Number of payload bytes delivered successfully / current time
+
+        """
+        if self._current_time == 0: return 0
         return self._num_bytes_sent / self._current_time
 
     @staticmethod
@@ -53,6 +62,7 @@ class GBNSender(object):
         return event.type == EventType.TIMEOUT
 
     def _handle_event(self, next_event):
+        """Handle an event by type."""
         if next_event is None:
             # no event occurred
             return
@@ -87,14 +97,9 @@ class GBNSender(object):
         assert False  # should never happen
 
     def _listen(self):
-        """TODO: Docstring for start.
+        """Start listening for packets from above and send until MAX_SEND."""
 
-        :arg1: TODO
-        :returns: TODO
-
-        """
-
-        self._fill_buffer()  # fill buffer completely
+        self._fill_buffer()  # fill buffer completely with N packets
 
         self._next_packet_to_send_idx = 0
         while len(self._buffer) != 0 and self._num_packets_delivered <= GBNSender.MAX_SEND:
@@ -133,6 +138,9 @@ class GBNSender(object):
         """Fill the remaining empty space in the buffer by asking the upper layer for more data."""
         while len(self._buffer) < self._window_size:
             datagram, datagram_length = self._get_packet_fn()
+            if datagram is None:
+                # no more data to send...(should never happen in our simulation)
+                break
             frame = Frame(self._seq_no, datagram, datagram_length)
             self._seq_no = (self._seq_no + 1) % (self._window_size + 1)
 
@@ -189,15 +197,13 @@ class GBNReceiver(object):
         if not frame.is_error:
             if frame.seq_no == self._next_expected_frame:
                 # in order frame
-                self._deliver(frame)
+                datagram = frame.unravel()
+                self._deliver(datagram)
                 self._next_expected_frame = (self._next_expected_frame + 1) % self._num_seq_nos
 
         ack = Frame(self._next_expected_frame, None, 0)
-
         transmission_delay = ack.length/self._link_capacity
-
         time_replied = self._current_time + transmission_delay
-        # print(self._num_delivered)
 
         return ack, time_replied
 
