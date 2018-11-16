@@ -129,6 +129,7 @@ class GBNSender(object):
 
             self._next_packet_to_send_idx += 1  # increment the next packet to send pointer
 
+            # TODO: should we handle all events in between transmission
             next_event = self._es.peek()
             if time_before_send <= next_event.time and next_event.time <= self._current_time:
                 # event occurred during transmission
