@@ -20,7 +20,7 @@ class GBNSender(object):
         :channel: the channel to send the data through
         :receiver: the receiver of the data
         :timeout_duration: seconds until the sender times out
-        :window_size: an integer buffer size
+        :window_size: an integer buffer size (default 1)
 
         """
         # config
@@ -33,10 +33,10 @@ class GBNSender(object):
         self._seq_no = 0
         self._current_time = 0
         self._num_packets_delivered = 0
-        self._num_bytes_sent = 0
+        self._num_bytes_sent = 0  # successfully delivered bytes of payload
 
         self._buffer = []
-        self._next_packet_to_send_idx = 0
+        self._next_packet_to_send_idx = 0  # points to the next packet that should be sent in the buffer
 
         # association
         self._es = es
@@ -65,10 +65,11 @@ class GBNSender(object):
         """Handle an event by type."""
         if next_event is None:
             # no event occurred
+            print('this is bad')
             return
 
         if next_event.type == EventType.TIMEOUT:
-            # retransmit all
+            # retransmit all in buffer
             self._next_packet_to_send_idx = 0
             return
 
@@ -82,13 +83,16 @@ class GBNSender(object):
                 self._fill_buffer()
 
                 self._next_packet_to_send_idx -= no_ackd
-                oldest_packet = self._buffer[self._next_packet_to_send_idx]
+                oldest_packet = self._buffer[0]
                 if oldest_packet.time_sent is not None:
                     # update timeout timer to the used for this sent frame
                     timeout_time = oldest_packet.time_sent + self._timeout_duration
                     self._es.purge(GBNSender._is_timeout_event)
                     timeout_event = TimeoutEvent(EventType.TIMEOUT, timeout_time)
                     self._es.register(timeout_time, timeout_event)
+                else:
+                    # 'oldest' packet is not sent
+                    assert self._next_packet_to_send_idx == 0
                 return
             else:
                 # erroneous ack'd or transmission
@@ -100,39 +104,42 @@ class GBNSender(object):
         """Start listening for packets from above and send until MAX_SEND."""
 
         self._fill_buffer()  # fill buffer completely with N packets
+        self._next_packet_to_send_idx = 0  # point p points to 0
 
-        self._next_packet_to_send_idx = 0
         while len(self._buffer) != 0 and self._num_packets_delivered <= GBNSender.MAX_SEND:
+            # continue sending until empty buffer (never should happen) or we sent MAX_SEND packets
             _, frame = self._buffer[self._next_packet_to_send_idx]
 
             transmission_delay = frame.length / self._link_capacity
             time_sent = self._current_time + transmission_delay
+            self._buffer[self._next_packet_to_send_idx] = GBNSender.WaitingPacket(time_sent, frame)
 
             if self._next_packet_to_send_idx == 0:
                 # start timeout on oldest packet in buffer
                 timeout_time = time_sent + self._timeout_duration
                 timeout_event = TimeoutEvent(EventType.TIMEOUT, timeout_time)
-                self._es.purge(GBNSender._is_timeout_event)
+                self._es.purge(GBNSender._is_timeout_event)  # delete all previous timeout events
                 self._es.register(timeout_time, timeout_event)
 
-            self._buffer[self._next_packet_to_send_idx] = GBNSender.WaitingPacket(time_sent, frame)
-
+            # send packet unreliably, get event returned (i.e. SEND())
+            time_before_send = self._current_time  # time before the packet was transmitted
+            self._current_time = time_sent  # current time is now the time that the packet was transmitted
             event = self._udt_send_fn(time_sent, frame, self._channel, self._receiver)
-            if event is not None:
-                # packet not lost
-                self._es.register(event.time, event)
+            if event is not None: self._es.register(event.time, event)  # no packets lost!
 
-            self._next_packet_to_send_idx += 1
+            self._next_packet_to_send_idx += 1  # increment the next packet to send pointer
 
             next_event = self._es.peek()
-            if self._current_time <= next_event.time and next_event.time <= self._current_time + transmission_delay:
-                # event occurred between transmission
-                self._current_time += transmission_delay
+            if time_before_send <= next_event.time and next_event.time <= self._current_time:
+                # event occurred during transmission
+                self._current_time = self._current_time  # event assumed to have occurred at current time
                 self._handle_event(self._es.pop())
-            elif self._next_packet_to_send_idx == self._window_size:
-                # no events occurred in between and no more packets to send
-                self._current_time = next_event.time
-                self._handle_event(self._es.pop())
+            else:
+                # no events happened between transmission
+                if self._next_packet_to_send_idx == self._window_size:
+                    # no events occurred in between and no more packets to send
+                    self._current_time = next_event.time  # set current time to the time of the next event
+                    self._handle_event(self._es.pop())
 
     def _fill_buffer(self):
         """Fill the remaining empty space in the buffer by asking the upper layer for more data."""

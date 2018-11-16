@@ -19,6 +19,12 @@ class Frame(object):
 
         self._is_error = False
 
+    def __str__(self):
+        return 'seq no: {}, is_error: {}'.format(self._seq_no, self._is_error)
+
+    def __repr__(self):
+        return str(self)
+
     @property
     def is_error(self):
         return self._is_error

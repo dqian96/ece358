@@ -34,7 +34,8 @@ def create_datagram_gen_fn(datagram_length):
     return get_packet_fn
 
 def ABQ():
-    window_size = 1
+    window_size = 5
+    # window_size = 1
 
     BER = 0
     C = 625000 # 5 Mb/s is 625000 bytes
