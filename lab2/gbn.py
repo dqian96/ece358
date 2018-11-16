@@ -9,6 +9,7 @@ class GBNSender(object):
     """GBN Sender. Sends messages based on go-back-n."""
 
     WaitingPacket = namedtuple('WaitingPacket', 'time_sent frame')
+    MAX_SEND = 10000
 
     def __init__(self, es, udt_send_fn, get_packet_fn, channel, receiver, timeout_duration, window_size=1):
         """Creates the GBN sender.
@@ -28,6 +29,8 @@ class GBNSender(object):
         # state
         self._seq_no = 0
         self._current_time = 0
+        self._num_packets_delivered = 0
+        self._num_bytes_sent = 0
 
         self._buffer = []
         self._next_packet_to_send_idx = 0
@@ -40,6 +43,10 @@ class GBNSender(object):
         self._receiver = receiver
 
         self._listen()  # listen to above for data; start sending packets
+
+    @property
+    def throughput(self):
+        return self._num_bytes_sent / self._current_time
 
     @staticmethod
     def _is_timeout_event(event):
@@ -72,6 +79,7 @@ class GBNSender(object):
                     self._es.purge(GBNSender._is_timeout_event)
                     timeout_event = TimeoutEvent(EventType.TIMEOUT, timeout_time)
                     self._es.register(timeout_time, timeout_event)
+                return
             else:
                 # erroneous ack'd or transmission
                 return  # ignore
@@ -89,7 +97,7 @@ class GBNSender(object):
         self._fill_buffer()  # fill buffer completely
 
         self._next_packet_to_send_idx = 0
-        while True:
+        while len(self._buffer) != 0 and self._num_packets_delivered <= GBNSender.MAX_SEND:
             _, frame = self._buffer[self._next_packet_to_send_idx]
 
             transmission_delay = frame.length / self._link_capacity
@@ -115,14 +123,11 @@ class GBNSender(object):
             if self._current_time <= next_event.time and next_event.time <= self._current_time + transmission_delay:
                 # event occurred between transmission
                 self._current_time += transmission_delay
-                continue
+                self._handle_event(self._es.pop())
             elif self._next_packet_to_send_idx == self._window_size:
                 # no events occurred in between and no more packets to send
                 self._current_time = next_event.time
                 self._handle_event(self._es.pop())
-
-
-            self._current_time = time_sent
 
     def _fill_buffer(self):
         """Fill the remaining empty space in the buffer by asking the upper layer for more data."""
@@ -140,7 +145,9 @@ class GBNSender(object):
         :n: the number of elements to slide to the left by
 
         """
-        return self._buffer[n:]
+        self._num_packets_delivered += n
+        self._num_bytes_sent += sum([p.frame.length - Frame.HEADER_LENGTH for p in self._buffer[:n]])
+        self._buffer = self._buffer[n:]
 
 
 class GBNReceiver(object):
@@ -190,6 +197,7 @@ class GBNReceiver(object):
         transmission_delay = ack.length/self._link_capacity
 
         time_replied = self._current_time + transmission_delay
+        # print(self._num_delivered)
 
         return ack, time_replied
 

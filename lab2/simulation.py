@@ -18,7 +18,6 @@ def send(time, frame, channel, receiver):
     if delivered_frame is not None:
         # packet not lost
         ack, time_replied = receiver.receive(delivered_time, delivered_frame)
-        print(ack, time_replied)
         delivered_ack, delivered_ack_time = channel.transmit(time_replied, ack)
 
     if delivered_ack is not None:
@@ -32,9 +31,21 @@ def create_datagram():
     datagram_length = 1500
     return None, datagram_length
 
-def simulate(window_size, timeout_duration, link_capacity, propagation_delay, bit_error_rate):
+def ABQ():
+    window_size = 1
+
+    BER = 0
+    C = 625000 # 5 Mb/s is 625000 bytes
+    prop_delay = 0.5  # 5000 ms and 10 ms
+    timeout_duration = 5 * prop_delay
+
+    max_gen = 10000
+    num_gen = [0]
+
     es = EventScheduler()
 
-    channel = Channel(link_capacity, propagation_delay, bit_error_rate)
-    receiver = GBNReceiver(window_size, link_capacity)
+    channel = Channel(C, prop_delay, BER)
+    receiver = GBNReceiver(window_size + 1, C)
     sender = GBNSender(es, send, create_datagram, channel, receiver, timeout_duration, window_size)
+
+    print(sender.throughput)
