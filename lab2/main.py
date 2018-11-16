@@ -1,3 +1,7 @@
+import simulation
 
 def main():
-    pass
+    simulation.simulate(1, 5, 0.1, 4, 0)
+
+if __name__ == '__main__':
+    main()

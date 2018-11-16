@@ -1,23 +1,20 @@
 from collections import deque, namedtuple
 
-from .event_scheduler import ACKEvent, TimeoutEvent, EventType, EventScheduler
-from .frame import Frame
+from event_scheduler import ACKEvent, TimeoutEvent, EventType, EventScheduler
+from frame import Frame
 
 
 class GBNSender(object):
 
     """GBN Sender. Sends messages based on go-back-n."""
 
-    FRAME_HEADER_SIZE = 10
-
     WaitingPacket = namedtuple('WaitingPacket', 'time_sent frame')
 
-    def __init__(self, es, udt_send_fn, get_packet_fn, channel, link_capacity, timeout_duration, window_size=1):
+    def __init__(self, es, udt_send_fn, get_packet_fn, channel, receiver, timeout_duration, window_size=1):
         """Creates the GBN sender.
 
         :es: an event scheduler object to push/pop events from
         :get_packet_fn: function() -> (packet: Packet, length: int) that returns a packet from the above layer
-        :capacity: the capacity of the forward channel in bytes/sec
         :timeout_duration: seconds until the sender times out
         :window_size: an integer buffer size
 
@@ -26,7 +23,7 @@ class GBNSender(object):
         assert window_size >= 1
         self._window_size = window_size
         self._timeout_duration = timeout_duration
-        self._link_capacity = link_capacity
+        self._link_capacity = channel.capacity
 
         # state
         self._seq_no = 0
@@ -40,6 +37,7 @@ class GBNSender(object):
         self._get_packet_fn = get_packet_fn
         self._udt_send_fn = udt_send_fn
         self._channel = channel
+        self._receiver = receiver
 
         self._listen()  # listen to above for data; start sending packets
 
@@ -106,7 +104,7 @@ class GBNSender(object):
 
             self._buffer[self._next_packet_to_send_idx] = GBNSender.WaitingPacket(time_sent, frame)
 
-            event = self._udt_send_fn(time_sent, frame, self._channel)
+            event = self._udt_send_fn(time_sent, frame, self._channel, self._receiver)
             if event is not None:
                 # packet not lost
                 self._es.register(event.time, event)
@@ -125,8 +123,6 @@ class GBNSender(object):
 
 
             self._current_time = time_sent
-
-
 
     def _fill_buffer(self):
         """Fill the remaining empty space in the buffer by asking the upper layer for more data."""

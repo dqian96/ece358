@@ -49,7 +49,7 @@ class EventScheduler(object):
             # no events to consume
             return None
 
-        return self._heap_q[0]
+        return self._heap_q[0][1]
 
 
     def register(self, time, event):
@@ -69,5 +69,5 @@ class EventScheduler(object):
         :should_del_fn: function(event): bool that evaluates true if event should be deleted
 
         """
-        self._heap_q = [e for e in self._heap_q if not should_del_fn(e)]
+        self._heap_q = [e for e in self._heap_q if not should_del_fn(e[1])]
         heapify(self._heap_q)

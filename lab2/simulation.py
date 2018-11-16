@@ -1,19 +1,25 @@
-from .event_scheduler import EventScheduler
-from .channel import Channel
-from .gbn import GBNReceiver, GBNSender
+from event_scheduler import ACKEvent, EventType, EventScheduler
+from channel import Channel
+from gbn import GBNReceiver, GBNSender
 
-def send(time, frame, channel):
-    """Sen
-    :returns: TODO
+def send(time, frame, channel, receiver):
+    """Simulate the life of a frame as it is sent, received, and ack'd.
+
+    :time: the int time that the frame was sent
+    :frame: the frame: Frame being sent
+    :receiver: the receiver: GBNReceiver object
+    :channel: channel: Channel connecting the sender and receiver
+    :returns: an Event object
 
     """
-    delivered_time, delivered_frame = channel.transmit(time, frame)
+    delivered_frame, delivered_time = channel.transmit(time, frame)
 
     delivered_ack = None  # default ack lost
     if delivered_frame is not None:
         # packet not lost
         ack, time_replied = receiver.receive(delivered_time, delivered_frame)
-        delivered_ack, delivered_ack_time = channel.transmit(ack, time_replied)
+        print(ack, time_replied)
+        delivered_ack, delivered_ack_time = channel.transmit(time_replied, ack)
 
     if delivered_ack is not None:
         # ack not lost
@@ -22,23 +28,13 @@ def send(time, frame, channel):
 
     return None  # ack lost; no event
 
-def simulate_arq():
-    """TODO: Docstring for simulate_arq.
-    :returns: TODO
+def create_datagram():
+    datagram_length = 1500
+    return None, datagram_length
 
-    """
-
-    sender = ARQSender()
-    receiver = ARQReciver()
-
-    forward_channel = Channel(prop_delay, 0.5, receiver)
-    backward_channel = Channel(prop_delay, 0.5, sender)
-
-def simulate(N, datagram_length, timeout):
+def simulate(window_size, timeout_duration, link_capacity, propagation_delay, bit_error_rate):
     es = EventScheduler()
 
-    sender = GBNSender()
-    receiver = GBNReceiver(N)
-
-    for:
-        sender.rdt_send(None, datagram_length)
+    channel = Channel(link_capacity, propagation_delay, bit_error_rate)
+    receiver = GBNReceiver(window_size, link_capacity)
+    sender = GBNSender(es, send, create_datagram, channel, receiver, timeout_duration, window_size)

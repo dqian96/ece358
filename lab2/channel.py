@@ -46,6 +46,10 @@ class Channel(object):
         assert frame_length != 0
         return frame_length/self._capacity
 
+    @property
+    def capacity(self):
+        return self._capacity
+
     @staticmethod
     def _undergo_interference(frame, bit_error_rate):
         """Return the frame after it has been affected by the interference of tranmission/
