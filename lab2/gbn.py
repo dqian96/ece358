@@ -29,7 +29,6 @@ class GBNSender(object):
         self._buffer = 0
 
 
-
 class GBNReceiver(object):
 
     """GBN Receiver class."""
@@ -74,7 +73,7 @@ class GBNReceiver(object):
 
         ack = Frame(self._next_expected_frame, None, 0)
 
-        transmission_delay = ack.frame_length/self._reverse_capacity
+        transmission_delay = ack.length/self._reverse_capacity
         time_replied = self._current_time + transmission_delay
 
         return time_replied, ack
