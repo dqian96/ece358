@@ -26,16 +26,33 @@ class EventScheduler(object):
             self._heap_q = [(e.time, e) for e in events_list]
             heapify(self._heap_q)
 
-    def pop_next(self):
+    def pop(self):
         """Pops the next event by time
 
         :returns: an Event object
 
         """
+        if len(self._heap_q) == 0:
+            # no events to consume
+            return None
+
         event_tuple = heappop(self._heap_q)  # (time: int, e Event)
         return event_tuple[1]
 
-    def add(self, time, event):
+    def peek(self):
+        """Peeks are the next event in the queue
+
+        :returns: an Event object
+
+        """
+        if len(self._heap_q) == 0:
+            # no events to consume
+            return None
+
+        return self._heap_q[0]
+
+
+    def register(self, time, event):
        """Add an Event to the scheduler with time
 
        :time: int time of the event

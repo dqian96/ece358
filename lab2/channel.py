@@ -24,15 +24,15 @@ class Channel(object):
 
         :time: the int time that the frame was sent to the channel
         :frame: the frame object to be sent through the channel
-        :returns: a tuple (delivered_time: int, frame: Frame)
+        :returns: a tuple (delivered_frame: Frame, delivered_time: int)
 
         """
-        frame = Channel._undergo_interference(frame, self._bit_error_rate)
+        delivered_frame = Channel._undergo_interference(frame, self._bit_error_rate)
 
-        if frame is not None:
+        if delivered_frame is not None:
             # frame not lost
             delivered_time = time + self._propagation_delay
-            return delivered_time, frame
+            return delivered_frame, delivered_time
 
         return None, None  # lost frame
 
