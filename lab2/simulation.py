@@ -39,8 +39,8 @@ def _create_datagram_gen_fn(datagram_length):
         return 1, datagram_length
     return get_packet_fn
 
-def simulate_ABQ(csv_filename, enable_NAK=False):
-    print('Running simulate ABQ with enable_NAK={}\n'.format(enable_NAK))
+def simulate_ABP(csv_filename, enable_NAK=False):
+    print('Running simulate ABP with enable_NAK={}\n'.format(enable_NAK))
 
     window_size = 1
     seq_no_range = window_size + 1
@@ -63,7 +63,7 @@ def simulate_ABQ(csv_filename, enable_NAK=False):
             for bit_rate_error in BER_values:
                 timeout_duration = timeout_multiplier * propagation_delay
 
-                msg = """Running ABQ simulation with options:
+                msg = """Running ABP simulation with options:
                          C={}B
                          BER={}
                          prop_delay={}s

@@ -31,7 +31,7 @@ class GBNSender(object):
         self._timeout_duration = timeout_duration
         self._link_capacity = channel.capacity
 
-        if self._enable_NAK: assert window_size == 1  # NAKs are only enabled if window size is 1
+        if enable_NAK: assert window_size == 1  # NAKs are only enabled if window size is 1
         self._enable_NAK = enable_NAK
 
         # state

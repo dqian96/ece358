@@ -10,17 +10,17 @@ def main():
     args = parser.parse_args()
 
     if args.simulation == 'abq':
-        csv_filename = 'ABQ.csv'
-        simulation.simulate_ABQ(csv_filename)
+        csv_filename = 'ABP.csv'
+        simulation.simulate_ABP(csv_filename)
     elif args.simulation == 'abq_nak':
-        csv_filename = 'ABQ_NAK.csv'
-        simulation.simulate_ABQ(csv_filename, enable_NAK=True)
+        csv_filename = 'ABP_NAK.csv'
+        simulation.simulate_ABP(csv_filename, enable_NAK=True)
     elif args.simulation == 'gbn':
         csv_filename = 'GBN.csv'
         simulation.simulate_GBN(csv_filename)
     elif args.simulation == 'graph':
-        res_q1 = list(csv.reader(open('ABQ.csv')))
-        res_q2 = list(csv.reader(open('ABQ_NAK.csv')))
+        res_q1 = list(csv.reader(open('ABP.csv')))
+        res_q2 = list(csv.reader(open('ABP_NAK.csv')))
         res_q3 = list(csv.reader(open('GBN.csv')))
 
         res_q1 = [[float(val) for val in r] for r in res_q1]
