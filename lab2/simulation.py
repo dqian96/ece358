@@ -39,13 +39,12 @@ def _create_datagram_gen_fn(datagram_length):
         return 1, datagram_length
     return get_packet_fn
 
-def simulate_ABP(csv_filename, enable_NAK=False):
-    print('Running simulate ABP with enable_NAK={}\n'.format(enable_NAK))
+def simulate(csv_filename, window_size=1, enable_NAK=False):
+    mode = 'ABQ' if window_size == 1 else 'GBN'
+    print('Running simulate {} with enable_NAK={}\n'.format(mode, enable_NAK))
 
-    window_size = 1
     seq_no_range = window_size + 1
 
-    # exercise i)
     C = 5 * 10**6 / 8 # 5 Mb/s = 625000 bytes/s
     BER_values = [0, 1 * 10**(-5), 1 * 10**(-4)]
     prop_delays = [10/2000, 500/2000]
@@ -63,14 +62,15 @@ def simulate_ABP(csv_filename, enable_NAK=False):
             for bit_rate_error in BER_values:
                 timeout_duration = timeout_multiplier * propagation_delay
 
-                msg = """Running ABP simulation with options:
+                msg = """Running {} simulation with options:
+                         window_size={}
                          C={}B
                          BER={}
                          prop_delay={}s
                          timeout={}s
                          datagram_length={}B
                          max_send={} """
-                print(msg.format(C, bit_rate_error, propagation_delay, timeout_duration,
+                print(msg.format(mode, window_size, C, bit_rate_error, propagation_delay, timeout_duration,
                                  datagram_length, max_send))
 
                 es = EventScheduler()
@@ -93,10 +93,15 @@ def simulate_ABP(csv_filename, enable_NAK=False):
 
     return results
 
-def simulate_GBN(csv_filename):
-    pass
+def simulate_ABP(csv_filename, enable_NAK=False):
+    results = simulate(csv_filename, 1, enable_NAK)
+    return results
 
-def graph_q1_q2(q1_results, q2_results):
+def simulate_GBN(csv_filename):
+    window_size = 4
+    results = simulate(csv_filename, window_size)
+
+def graph_results(q1_results, q2_results, file_prefix):
     import matplotlib.pyplot as plt
 
     x = [2.5, 5, 7.5, 10, 12.5]
@@ -125,7 +130,7 @@ def graph_q1_q2(q1_results, q2_results):
     plt.ylabel('Throughput (bytes/sec)')
     plt.xlabel('delta/tau (2tau = 500 ms)')
 
-    plt.savefig('q1_q2_ber_0.png')
+    plt.savefig(file_prefix + '_ber_0.png')
     plt.clf()
 
     # BER = 1.0 ** 10^(-5)
@@ -150,7 +155,7 @@ def graph_q1_q2(q1_results, q2_results):
     plt.ylabel('Throughput (bytes/sec)')
     plt.xlabel('delta/tau (2tau = 500 ms)')
 
-    plt.savefig('q1_q2_ber_0.00001.png')
+    plt.savefig(file_prefix + '_ber_0.00001.png')
     plt.clf()
 
     # BER = 1.0 ** 10^(-4)
@@ -175,8 +180,5 @@ def graph_q1_q2(q1_results, q2_results):
     plt.ylabel('Throughput (bytes/sec)')
     plt.xlabel('delta/tau (2tau = 500 ms)')
 
-    plt.savefig('q1_q2_ber_0.0001.png')
+    plt.savefig(file_prefix + 'ber_0.0001.png')
     plt.clf()
-
-def graph_q1_q3(q1_results, q3_results):
-    pass

@@ -84,7 +84,7 @@ class GBNSender(object):
                 self._slide(no_ackd)
                 self._fill_buffer()
 
-                self._next_packet_to_send_idx -= no_ackd
+                self._next_packet_to_send_idx = max(0, self._next_packet_to_send_idx - no_ackd)
                 oldest_packet = self._buffer[0]
                 if oldest_packet.time_sent is not None:
                     # update timeout timer to the used for this sent frame
