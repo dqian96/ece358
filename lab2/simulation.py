@@ -39,7 +39,9 @@ def _create_datagram_gen_fn(datagram_length):
         return 1, datagram_length
     return get_packet_fn
 
-def simulate_ABQ(csv_filename):
+def simulate_ABQ(csv_filename, enable_NAK=False):
+    print('Running simulate ABQ (q1)')
+
     window_size = 1
     seq_no_range = window_size + 1
 
@@ -54,9 +56,11 @@ def simulate_ABQ(csv_filename):
 
     get_packet_fn = _create_datagram_gen_fn(datagram_length)
 
-    for bit_rate_error in BER_values:
+    results = []
+    for timeout_multiplier in timeout_multipliers:
+        multiplier_results = []
         for propagation_delay in prop_delays:
-            for timeout_multiplier in timeout_multipliers:
+            for bit_rate_error in BER_values:
                 timeout_duration = timeout_multiplier * propagation_delay
 
                 msg = """Running ABQ simulation with options:
@@ -72,13 +76,107 @@ def simulate_ABQ(csv_filename):
                 es = EventScheduler()
                 channel = Channel(C, propagation_delay, bit_rate_error)
                 receiver = GBNReceiver(seq_no_range, C)
-                sender = GBNSender(es, _SEND, get_packet_fn, channel, receiver, timeout_duration, max_send, window_size)
+                sender = GBNSender(es, _SEND, get_packet_fn, channel, receiver, timeout_duration, max_send,
+                                   window_size, enable_NAK)
 
                 throughput = sender.throughput
                 print('Throughput: {}B/s\n'.format(throughput))
+                multiplier_results.append(throughput)
 
-def ABQ_NAK():
+        results.append(multiplier_results)
+
+    f = open(csv_filename, 'w')
+    str_results = [[str(val) for val in r] for r in results]
+    output = '\n'.join([','.join(r) for r in str_results])
+    f.write(output)
+    f.close()
+
+    return results
+
+def simulate_GBN(csv_filename):
     pass
 
-def GBN():
+def graph_q1_q2(q1_results, q2_results):
+    import matplotlib.pyplot as plt
+
+    x = [2.5, 5, 7.5, 10, 12.5]
+
+    plt.figure(num=None, figsize=(14, 10), dpi=80, facecolor='w', edgecolor='k')
+
+    # BER = 0.0
+    col = 0
+    y_q1_10 = [r[col] for r in q1_results]
+    y_q2_10 = [r[col] for r in q2_results]
+
+    y_q1_500 = [r[3 + col] for r in q1_results]
+    y_q2_500 = [r[3 + col] for r in q2_results]
+
+    plt.subplot(1, 2, 1)
+    plt.plot(x, y_q1_10, 'ko-')
+    plt.plot(x, y_q2_10, 'r.-')
+    plt.title('Throughput, BER=0, black=q1, red=q2')
+    plt.ylabel('Throughput (bytes/sec)')
+    plt.xlabel('delta/tau (2tau = 10 ms)')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(x, y_q1_500, 'ko-')
+    plt.plot(x, y_q2_500, 'r.-')
+    plt.title('Throughput, BER=0, black=q1, red=q2')
+    plt.ylabel('Throughput (bytes/sec)')
+    plt.xlabel('delta/tau (2tau = 500 ms)')
+
+    plt.savefig('q1_q2_ber_0.png')
+    plt.clf()
+
+    # BER = 1.0 ** 10^(-5)
+    col = 1
+    y_q1_10 = [r[col] for r in q1_results]
+    y_q2_10 = [r[col] for r in q2_results]
+
+    y_q1_500 = [r[3 + col] for r in q1_results]
+    y_q2_500 = [r[3 + col] for r in q2_results]
+
+    plt.subplot(1, 2, 1)
+    plt.plot(x, y_q1_10, 'ko-')
+    plt.plot(x, y_q2_10, 'r.-')
+    plt.title('Throughput, BER=1*10^(-5), black=q1, red=q2')
+    plt.ylabel('Throughput (bytes/sec)')
+    plt.xlabel('delta/tau (2tau = 10 ms)')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(x, y_q1_500, 'ko-')
+    plt.plot(x, y_q2_500, 'r.-')
+    plt.title('Throughput, BER=1*10^(-5), black=q1, red=q2')
+    plt.ylabel('Throughput (bytes/sec)')
+    plt.xlabel('delta/tau (2tau = 500 ms)')
+
+    plt.savefig('q1_q2_ber_0.00001.png')
+    plt.clf()
+
+    # BER = 1.0 ** 10^(-4)
+    col = 2
+    y_q1_10 = [r[col] for r in q1_results]
+    y_q2_10 = [r[col] for r in q2_results]
+
+    y_q1_500 = [r[3 + col] for r in q1_results]
+    y_q2_500 = [r[3 + col] for r in q2_results]
+
+    plt.subplot(1, 2, 1)
+    plt.plot(x, y_q1_10, 'ko-')
+    plt.plot(x, y_q2_10, 'r.-')
+    plt.title('Throughput, BER=1*10^(-4), black=q1, red=q2')
+    plt.ylabel('Throughput (bytes/sec)')
+    plt.xlabel('delta/tau (2tau = 10 ms)')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(x, y_q1_500, 'ko-')
+    plt.plot(x, y_q2_500, 'r.-')
+    plt.title('Throughput, BER=1*10^(-4), black=q1, red=q2')
+    plt.ylabel('Throughput (bytes/sec)')
+    plt.xlabel('delta/tau (2tau = 500 ms)')
+
+    plt.savefig('q1_q2_ber_0.0001.png')
+    plt.clf()
+
+def graph_q1_q3(q1_results, q3_results):
     pass

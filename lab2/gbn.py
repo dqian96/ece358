@@ -11,7 +11,7 @@ class GBNSender(object):
     WaitingPacket = namedtuple('WaitingPacket', 'time_sent frame')
 
     def __init__(self, es, udt_send_fn, get_packet_fn, channel, receiver, timeout_duration,
-                 max_send=10000, window_size=1):
+                 max_send=10000, window_size=1, enable_NAK=False):
         """Creates the GBN sender.
 
         :es: an event scheduler object to push/pop events from
@@ -30,6 +30,7 @@ class GBNSender(object):
         self._max_send = max_send
         self._timeout_duration = timeout_duration
         self._link_capacity = channel.capacity
+        self._enable_NAK = enable_NAK
 
         # state
         self._seq_no = 0
@@ -95,6 +96,8 @@ class GBNSender(object):
                 return
             else:
                 # erroneous ack'd or transmission
+                if self._enable_NAK:
+                    pass
                 return  # ignore
 
         assert False  # should never happen
