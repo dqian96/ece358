@@ -25,7 +25,7 @@ def main():
 
         res_q1 = [[float(val) for val in r] for r in res_q1]
         res_q2 = [[float(val) for val in r] for r in res_q2]
-        res_q3 = [[float(val) for val in r] for r in res_q3]
+        # res_q3 = [[float(val) for val in r] for r in res_q3]
 
         simulation.graph_results(res_q1, res_q2, 'q1_q2')
         # simulation.graph_results(res_q1, res_q3, 'q1_q3')
