@@ -40,7 +40,7 @@ def _create_datagram_gen_fn(datagram_length):
     return get_packet_fn
 
 def simulate_ABQ(csv_filename, enable_NAK=False):
-    print('Running simulate ABQ (q1)')
+    print('Running simulate ABQ with enable_NAK={}\n'.format(enable_NAK))
 
     window_size = 1
     seq_no_range = window_size + 1

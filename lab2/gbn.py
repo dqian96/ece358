@@ -30,6 +30,8 @@ class GBNSender(object):
         self._max_send = max_send
         self._timeout_duration = timeout_duration
         self._link_capacity = channel.capacity
+
+        if self._enable_NAK: assert window_size == 1  # NAKs are only enabled if window size is 1
         self._enable_NAK = enable_NAK
 
         # state
@@ -96,8 +98,7 @@ class GBNSender(object):
                 return
             else:
                 # erroneous ack'd or transmission
-                if self._enable_NAK:
-                    pass
+                if self._enable_NAK: self._next_packet_to_send_idx = 0 # interpret as NAK; resend only packet now!
                 return  # ignore
 
         assert False  # should never happen
