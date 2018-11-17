@@ -1,8 +1,9 @@
+from copy import deepcopy
 from event_scheduler import ACKEvent, EventType, EventScheduler
 from channel import Channel
 from gbn import GBNReceiver, GBNSender
 
-def SEND(time, frame, channel, receiver):
+def _SEND(time, frame, channel, receiver):
     """Simulate the life of a frame as it is sent, received, and ack'd.
 
     :time: the int time that the frame was sent by the sender
@@ -12,6 +13,11 @@ def SEND(time, frame, channel, receiver):
     :returns: an Event generated at the sender
 
     """
+    # num_delivered = receiver.num_delivered
+    # if num_delivered % 100 == 0:
+    #     print('successfully sent: {}'.format(num_delivered))
+
+    frame = deepcopy(frame)  # make a copy to send
     delivered_frame, delivered_time = channel.transmit(time, frame)
 
     delivered_ack = None  # default ack lost
@@ -27,31 +33,49 @@ def SEND(time, frame, channel, receiver):
 
     return None  # ack lost; no event
 
-def create_datagram_gen_fn(datagram_length):
+def _create_datagram_gen_fn(datagram_length):
     # dynamically create get packet functions for certain packet lengths
     def get_packet_fn():
         return 1, datagram_length
     return get_packet_fn
 
-def ABQ():
-    window_size = 5
-    # window_size = 1
+def simulate_ABQ(csv_filename):
+    window_size = 1
+    seq_no_range = window_size + 1
 
-    BER = 0
-    C = 625000 # 5 Mb/s is 625000 bytes
-    prop_delay = 0.5  # 5000 ms and 10 ms
-    timeout_duration = 5 * prop_delay
+    # exercise i)
+    C = 5 * 10**6 / 8 # 5 Mb/s = 625000 bytes/s
+    BER_values = [0, 1 * 10**(-5), 1 * 10**(-4)]
+    prop_delays = [10/2000, 500/2000]
+    timeout_multipliers = [2.5, 5, 7.5, 10, 12.5]
+
+    max_send = 10000
     datagram_length = 1500
 
+    get_packet_fn = _create_datagram_gen_fn(datagram_length)
 
-    get_packet_fn = create_datagram_gen_fn(datagram_length)
-    es = EventScheduler()
+    for bit_rate_error in BER_values:
+        for propagation_delay in prop_delays:
+            for timeout_multiplier in timeout_multipliers:
+                timeout_duration = timeout_multiplier * propagation_delay
 
-    channel = Channel(C, prop_delay, BER)
-    receiver = GBNReceiver(window_size + 1, C)
-    sender = GBNSender(es, SEND, get_packet_fn, channel, receiver, timeout_duration, window_size)
+                msg = """Running ABQ simulation with options:
+                         C={}B
+                         BER={}
+                         prop_delay={}s
+                         timeout={}s
+                         datagram_length={}B
+                         max_send={} """
+                print(msg.format(C, bit_rate_error, propagation_delay, timeout_duration,
+                                 datagram_length, max_send))
 
-    print(sender.throughput)
+                es = EventScheduler()
+                channel = Channel(C, propagation_delay, bit_rate_error)
+                receiver = GBNReceiver(seq_no_range, C)
+                sender = GBNSender(es, _SEND, get_packet_fn, channel, receiver, timeout_duration, max_send, window_size)
+
+                throughput = sender.throughput
+                print('Throughput: {}B/s\n'.format(throughput))
 
 def ABQ_NAK():
     pass

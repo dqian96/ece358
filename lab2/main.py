@@ -22,7 +22,9 @@ def main():
 
     # args = parser.parse_args()
 
-    simulation.ABQ()
+    filename = ''
+
+    simulation.simulate_ABQ(filename)
 
 if __name__ == '__main__':
     main()

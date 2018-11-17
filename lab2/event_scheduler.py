@@ -26,6 +26,9 @@ class EventScheduler(object):
             self._heap_q = [(e.time, e) for e in events_list]
             heapify(self._heap_q)
 
+    def __str__(self):
+        return str(self._heap_q)
+
     def pop(self):
         """Pops the next event by time
 
